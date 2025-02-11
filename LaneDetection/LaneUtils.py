@@ -1,32 +1,42 @@
 import cv2
 import numpy as np
 
-### ----- STEP 1 : Find Lane Area & Remove Backgrounds ----- ###
+# https://github.com/murtazahassan/Learn-OpenCV-in-3-hours/blob/d4d6a14c7151aa4ebe23eb2a7cc8f94db05384c3/project2.py#L65
+
+### ----- STEP 1 : Extract Lane Color & Remove Backgrounds ----- ###
 def threshold(img):
   # Convert BGR to HSV
   imgHsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-  # Define range of Blackcolor(Lane) in HSV
+  # Define range of blackcolor(Lane) in HSV
+  # Use ColorPicker.py for adjustment ( python ColorPicker.py )
   lowerBlack = np.array([0, 0, 0])
-  upperBlack = np.array([90, 50, 255])
+  upperBlack = np.array([70, 100, 200])
 
   # Binaryization based on lane color
   maskBlack = cv2.inRange(imgHsv, lowerBlack, upperBlack)
 
   return maskBlack
 
+
 ### ----- STEP 2 : Warping Lane Image ----- ###
-def warpImg(img, points, w, h):
-  # Source(origin 4 pts) -> Destination(output 4 vertices)
+def warpImg(img, points, w, h, inverse=False):
+  # Fix the four vertices of the area to be transformed
   source = np.float32(points)
   destination = np.float32([[0,0], [w,0], [0,h], [w,h]])
 
   # Get Warp Matrix
-  matrix = cv2.getPerspectiveTransform(source, destination)
-  #inv_matrix = cv2.getPerspectiveTransform(destination, source)
+  if not inverse:
+    matrix = cv2.getPerspectiveTransform(source, destination) # Source(origin 4 pts) -> Destination(output 4 vertices)
+  else:
+    matrix = cv2.getPerspectiveTransform(destination, source) # Destination(output 4 vertices) -> Source(origin 4 pts)
+
+  # Warping with transformation matrix
   imgWarp = cv2.warpPerspective(img, matrix, (w,h))
   return imgWarp
 
+
+### --- 2-1 : Test for Warping Image --- ###
 def empty(a):
   pass
 
@@ -53,22 +63,75 @@ def drawPoints(img, points):
     cv2.circle(img, (int(points[x][0]),int(points[x][1])), 15, (0,0,255), cv2.FILLED)
   return img
 
+
 ### ----- STEP 3 : Get Histogram ----- ###
-def getHistogram(img, minPer=0.2, display = False):
-  histValues = np.sum(img,axis=0)
-  #print(histValues)
-  
+def getHistogram(img, minPer=0.3, display=False, region=1, direction='straight'):
+  # ROI(Region Of Interest) = bottom of image (1/region)
+  roi = int(img.shape[0] - img.shape[0]//region)
+  histValues = np.sum(img[roi::], axis=0)
+  #histValues = np.sum(img, axis=0) if region == 1 else np.sum(img[(img.shape[0])//region::], axis=0)
+
+  # Use a histogram to calculate the shape of a road & basepoint(center of road)
+  # If direction is straight, right turn road should be ignored
+  if direction is 'straight':
+    minPer *= 1.5
   maxValue = np.max(histValues)
   minValue = minPer * maxValue
-
   indexArray = np.where(histValues >= minValue)
-  basePoint = int(np.average(indexArray))
+  basePoint = int(np.mean(indexArray))
 
+  # Visualization for debug
   if display:
-    imgHist = np.zeros((img.shape[0], img.shape[1], 3), np.uint8)
+    imgHist = np.zeros((img.shape[0],img.shape[1],3), np.uint8)
     for x, intensity in enumerate(histValues):
-      cv2.line(imgHist, (x,img.shape[0]), (x,img.shape[0]-intensity//255), (255,0,255), 1)
-      cv2.circle(imgHist, (basePoint, img.shape[0]), 20, (0,255,255))
+      cv2.line(imgHist, (x,img.shape[0]), (x,img.shape[0]-intensity//255//region), (255,0,255), 1)
+      cv2.circle(imgHist, (basePoint, img.shape[0]), 20, (0,255,255), cv2.FILLED)
     return basePoint, imgHist
 
   return basePoint
+
+
+### ----- STEP 4 : Smoothing Curve ----- ###
+def smoothingCurve(curveList, curveRaw, maxWindow = 5):
+  # Moving Average (default window size = 5)
+  curveList = np.append(curveList, curveRaw)
+  if np.size(curveList) > maxWindow:
+    np.delete(curveList, np.s_[0:np.size(curveList)-maxWindow]) # Pop old values
+
+  return int(np.mean(curveList))  # Average
+
+
+### ----- STEP 5 : Display ----- ###
+def stackImage(scale, imgArray):
+  rows = len(imgArray)
+  cols = len(imgArray[0])
+  rowsAvailable = isinstance(imgArray[0], list)
+
+  width = imgArray[0][0].shape[1]
+  height = imgArray[0][0].shape[0]
+
+  if rowsAvailable:
+    for x in range(rows):
+      for y in range(cols):
+        if imgArray[x][y].shape[:2] != imgArray[0][0].shape[:2]:
+          imgArray[x][y] = cv2.resize(imgArray[x][y], (imgArray[0][0].shape[1],imgArray[0][0].shape[0]), None, scale, scale)
+        if len(imgArray[x][y].shape) == 2:
+          imgArray[x][y] = cv2.cvtColor(imgArray[x][y], cv2.COLOR_GRAY2BGR)
+    
+    hor = np.empty((rows,height,width*cols,3), np.uint8)
+    #hor_con = rows * np.empty_like(imageBlank)
+    for x in range(rows):
+      hor[x] = np.hstack(imgArray[x])
+    ver = np.vstack(hor)
+
+  else:
+    for x in range(rows):
+      if imgArray[x].shape[:2] != imgArray[0].shape[:2]:
+        imgArray[x] = cv2.resize(imgArray[x], (imgArray[0].shape[1],imgArray[0].shape[0]), None, scale, scale)
+      if len(imgArray[x].shape) == 2:
+        imgArray[x] = cv2.cvtColor(imgArray[x], cv2.COLOR_GRAY2BGR)
+
+    hor = np.stack(imgArray)
+    ver = hor
+
+  return ver

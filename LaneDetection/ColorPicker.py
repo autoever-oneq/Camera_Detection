@@ -1,7 +1,9 @@
 import cv2
 import numpy as np
 
-videoName = 'test_video.mp4'
+### Debug Code For Lane Color Extraction
+### Please change the name of the video
+videoName = 'video_test2.mp4'
 cap = cv2.VideoCapture(videoName)
 frameWidth = 480
 frameHeight = 240
