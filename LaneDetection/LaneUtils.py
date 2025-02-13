@@ -10,8 +10,8 @@ def threshold(img):
 
   # Define range of blackcolor(Lane) in HSV
   # Use ColorPicker.py for adjustment ( python ColorPicker.py )
-  lowerBlack = np.array([0, 0, 0])
-  upperBlack = np.array([70, 100, 200])
+  lowerBlack = np.array([15, 0, 0])
+  upperBlack = np.array([179, 90, 110])
 
   # Binaryization based on lane color
   maskBlack = cv2.inRange(imgHsv, lowerBlack, upperBlack)
@@ -65,16 +65,18 @@ def drawPoints(img, points):
 
 
 ### ----- STEP 3 : Get Histogram ----- ###
-def getHistogram(img, minPer=0.3, display=False, region=1, direction='straight'):
+def getHistogram(img, minPer=0.5, display=False, region=1, direction='straight'):
   # ROI(Region Of Interest) = bottom of image (1/region)
   roi = int(img.shape[0] - img.shape[0]//region)
   histValues = np.sum(img[roi::], axis=0)
   #histValues = np.sum(img, axis=0) if region == 1 else np.sum(img[(img.shape[0])//region::], axis=0)
 
   # Use a histogram to calculate the shape of a road & basepoint(center of road)
-  # If direction is straight, right turn road should be ignored
-  if direction is 'straight':
+  # If direction is straight, (right/left) turn lane in crossroad should be ignored
+  if direction == 'straight':
     minPer *= 1.5
+  minPer = 0.1 if minPer <= 0.1 else 0.9 if minPer >= 0.9 else minPer
+
   maxValue = np.max(histValues)
   minValue = minPer * maxValue
   indexArray = np.where(histValues >= minValue)
@@ -98,7 +100,8 @@ def smoothingCurve(curveList, curveRaw, maxWindow = 5):
   if np.size(curveList) > maxWindow:
     np.delete(curveList, np.s_[0:np.size(curveList)-maxWindow]) # Pop old values
 
-  return int(np.mean(curveList))  # Average
+  avg = int(np.mean(curveList)) # Average
+  return avg
 
 
 ### ----- STEP 5 : Display ----- ###

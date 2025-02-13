@@ -1,6 +1,6 @@
-import cv2
+import numpy as np
 
-image = cv2.imread("lane.jpg",cv2.IMREAD_COLOR)
-cv2.imshow("TEST",image)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+rows, height, width = 3, 240, 480
+
+hor = np.empty((rows,height,width,3), np.uint8)
+print(hor.shape)

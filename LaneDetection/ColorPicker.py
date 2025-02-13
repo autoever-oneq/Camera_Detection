@@ -3,23 +3,25 @@ import numpy as np
 
 ### Debug Code For Lane Color Extraction
 ### Please change the name of the video
-videoName = 'video_test2.mp4'
-cap = cv2.VideoCapture(videoName)
+videoName = 'camera9.mp4'
+cap = cv2.VideoCapture('video\\'+videoName)
 frameWidth = 480
 frameHeight = 240
 frameCounter = 0
+
+bar_init = [15, 179, 0, 90, 0, 110]
 
 def empty(a):
   pass
 
 cv2.namedWindow("HSV")
 cv2.resizeWindow("HSV",640,240)
-cv2.createTrackbar("HUE Min","HSV",0,179,empty)
-cv2.createTrackbar("HUE Max","HSV",179,179,empty)
-cv2.createTrackbar("SAT Min","HSV",0,255,empty)
-cv2.createTrackbar("SAT Max","HSV",255,255,empty)
-cv2.createTrackbar("VALUE Min","HSV",0,255,empty)
-cv2.createTrackbar("VALUE Max","HSV",255,255,empty)
+cv2.createTrackbar("HUE Min","HSV",bar_init[0],179,empty)
+cv2.createTrackbar("HUE Max","HSV",bar_init[1],179,empty)
+cv2.createTrackbar("SAT Min","HSV",bar_init[2],255,empty)
+cv2.createTrackbar("SAT Max","HSV",bar_init[3],255,empty)
+cv2.createTrackbar("VALUE Min","HSV",bar_init[4],255,empty)
+cv2.createTrackbar("VALUE Max","HSV",bar_init[5],255,empty)
 
 while True:
   frameCounter += 1

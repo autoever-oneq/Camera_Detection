@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import LaneUtils as utils
 
-# Global Variable
+# Global Variable (for static)
 curveList = np.zeros((0), dtype=int)  # Empty integer array
 
 # Get lane curve's trend
@@ -10,24 +10,28 @@ def getLaneCurve(img, direction='straight', display=2):
   imgCopy = img.copy()
   imgResult = img.copy()
 
-  ### STEP 1 : Finding Lane Boundaries
+  ### STEP 1 : Find Lane & Binarization
   imgThres = utils.threshold(img)
 
   ### STEP 2 : Warping Lane Image
   hT, wT, c = img.shape
-  # Get points using trackbars
-  points = utils.valTrackbars()
+  # Determine which region to warp according to the direction
+  #points = utils.valTrackbars()
+  points = np.float32([[wT*0.25,hT*0.4],[wT*0.75,hT*0.4],[wT*0.2,hT],[wT*0.8,hT]] if direction == 'straight' \
+                 else [[wT*0.4,hT*0.6],[wT*0.8,hT*0.6],[wT*0.375,hT],[wT*0.875,hT]] if direction == 'right' \
+                 else [[wT*0.2,hT*0.6],[wT*0.6,hT*0.6],[wT*0.125,hT],[wT*0.625,hT]])
+
   imgWarp = utils.warpImg(imgThres, points, wT, hT)
   imgWarpPoints = utils.drawPoints(imgCopy, points)
 
   ### STEP 3 : Calculate Gradient of Lane(= Intensity of Curve)
   # Get histogram that accumulates pixel in a column
   if display > 1:
-    middlePoint, imgHist = utils.getHistogram(imgWarp, display=True, minPer=0.3, region=3, direction=direction)   # Center position for the current lane(bottom of image)
-    curveAveragePoint, imgHist = utils.getHistogram(imgWarp, display=True, minPer=0.6, direction=direction)       # Average position of nearby roads
+    middlePoint, imgHist = utils.getHistogram(imgWarp, display=True, minPer=0.6, region=2, direction=direction)   # Center position for the current lane(bottom of image)
+    curveAveragePoint, imgHist = utils.getHistogram(imgWarp, display=True, minPer=0.4, direction=direction)       # Average position of nearby roads
   else:
-    middlePoint = utils.getHistogram(imgWarp, minPer=0.3, region=3, direction=direction)   # Center position for the current lane(bottom of image)
-    curveAveragePoint = utils.getHistogram(imgWarp, minPer=0.6, direction=direction)       # Average position of nearby roads
+    middlePoint = utils.getHistogram(imgWarp, minPer=0.6, region=2, direction=direction)   # Center position for the current lane(bottom of image)
+    curveAveragePoint = utils.getHistogram(imgWarp, minPer=0.5, direction=direction)       # Average position of nearby roads
   curveRaw = curveAveragePoint - middlePoint    # Raw target curve(biased) intensity
 
   ### STEP 4 : Smoothing Curve Using LPF Filter
@@ -36,7 +40,7 @@ def getLaneCurve(img, direction='straight', display=2):
   ### STEP 5 : Display
   if display > 0:
     imgInvWarp = utils.warpImg(imgWarp, points, wT, hT, inverse=True)
-    imgInvWarp[0 : hT//3, 0 : wT] = 0   # Masking the top of inv Image
+    #imgInvWarp[0 : hT//3, 0 : wT] = 0   # Masking the top of inv Image
     imgInvWarp = cv2.cvtColor(imgInvWarp, cv2.COLOR_GRAY2BGR)
     
     imgLaneColor = np.full_like(img, (0, 255, 0))
@@ -61,21 +65,24 @@ def getLaneCurve(img, direction='straight', display=2):
 
   ### STEP 6 : Normalization
   # Mapping [(-inf,-th],(-th,th),[th,inf)] -> [-1,0,1]
-  curveThres = 50
-  curve = 1 if (curve >= curveThres) else -1 if (curve <= -curveThres) else 0
+  #curveThres = 50
+  #curve = 1 if (curve >= curveThres) else -1 if (curve <= -curveThres) else 0
 
   return curve
 
 ### Unit Test
 if __name__ == '__main__':
-  videoName = 'video_test2.mp4'
-  cap = cv2.VideoCapture(videoName)
+  #videoName = 'camera4.mp4'
+  dir = ['', 'straight', 'straight', 'right', 'straight', 'right', 'right', 'straight', 'straight', 'right',
+         'right', 'right', 'straight', 'straight', 'right', 'right']
+  idx = 14
+  cap = cv2.VideoCapture('video\\'+'camera'+str(idx)+'.mp4')
 
   testWidth = 480
   testHeight = 240
   frameCounter = 0
 
-  initialTrackbarVals = [0, 0, 0, testHeight]
+  initialTrackbarVals = [testWidth//2-120, testHeight//2, 35, testHeight]
   utils.initializeTrackbars(initialTrackbarVals)
 
   while True:
@@ -89,8 +96,11 @@ if __name__ == '__main__':
       break
 
     img = cv2.resize(frame, (testWidth,testHeight))
-    curve = getLaneCurve(img, display=1)
-    print(curve)
+    #curve = getLaneCurve(img, direction='straight', display=2)
+    curve = getLaneCurve(img, direction=dir[idx], display=2)
+    
+    if frameCounter % 5 == 0:
+      print(curve)
 
     # Quit
     if cv2.waitKey(1) == ord('q'):
