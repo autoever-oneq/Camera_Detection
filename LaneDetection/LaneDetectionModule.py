@@ -32,7 +32,7 @@ def getLaneCurve(img, direction='straight', display=2):
   else:
     middlePoint = utils.getHistogram(imgWarp, minPer=0.6, region=2, direction=direction)   # Center position for the current lane(bottom of image)
     curveAveragePoint = utils.getHistogram(imgWarp, minPer=0.5, direction=direction)       # Average position of nearby roads
-  curveRaw = curveAveragePoint - middlePoint    # Raw target curve(biased) intensity
+  curveRaw = curveAveragePoint - middlePoint if not np.isnan(curveAveragePoint) and not np.isnan(curveAveragePoint) else 200  # Raw target curve(biased) intensity
 
   ### STEP 4 : Smoothing Curve Using LPF Filter
   curve = utils.smoothingCurve(curveList, curveRaw)
