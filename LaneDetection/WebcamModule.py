@@ -13,8 +13,8 @@ class webcamModule:
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, size[1])
 
 
-  def captureImg(cap: cv2.VideoCapture, display: bool=False, size: tuple=dsize):
-    success, img = cap.read()
+  def captureImg(self, display: bool=False, size: tuple=dsize):
+    success, img = self.cap.read()
 
     if success:
       img = cv2.resize(img, size)
