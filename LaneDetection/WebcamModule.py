@@ -1,9 +1,17 @@
 import cv2
-from LaneDetectionModule import getLaneCurve
 
-cap = cv2.VideoCapture(0)
+default_h, default_w = 480, 640
+def webcamInit(size=(default_w,default_h)):
+  cap = cv2.VideoCapture(1) # 외장카메라 ID index 값 필요
+  if not cap.isOpened():
+    print("Cannot open video device")
+    return cap
 
-def getImg(display=False, size=(480,240)):
+  cap.set(cv2.CAP_PROP_FRAME_HEIGHT, default_h)
+  cap.set(cv2.CAP_PROP_FRAME_WIDTH, default_w)
+  return cap
+
+def captureImg(cap: cv2.VideoCapture, display: bool=False, size: tuple=(default_h,default_w)):
   success, img = cap.read()
 
   if success:
@@ -15,23 +23,20 @@ def getImg(display=False, size=(480,240)):
 
 ### Unit Test
 if __name__ == '__main__':
-  while True:
-    success, img = getImg(display=True)
+  from LaneDetectionModule import getLaneCurve
+
+  cap = webcamInit()
+  while cap.isOpened():
+    success, img = captureImg(cap, display=True)
     if not success:
+      print("Video Capture Failed")
       continue
 
-    maxVal = 0.5
-    curveVal = getLaneCurve(img, display=1)
-
-    curveVal = maxVal if (curveVal > maxVal) else -maxVal if (curveVal < -maxVal) else curveVal
-    
-    # Motor의 물리적 차이 존재 -> 두 모터의 서로 다른 sensitivity
-    # Band를 두어 0 근처에서 작은 값에 의한 트월킹 방지
-    sensitivity = 1.3
-    if curveVal > 0:
-      sensitivity = 1.7
-      curveVal = 0 if curveVal < 0.05 else curveVal
-    else:
-      curveVal = 0 if curveVal > -0.08 else curveVal
-    
+    curveVal = getLaneCurve(img, display=2)
     print(curveVal)
+    
+    if cv2.waitKey(1) == ord('q'):
+      break
+  
+  cap.release()
+  cv2.destroyAllWindows()

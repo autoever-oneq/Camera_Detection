@@ -4,7 +4,7 @@ import numpy as np
 # https://github.com/murtazahassan/Learn-OpenCV-in-3-hours/blob/d4d6a14c7151aa4ebe23eb2a7cc8f94db05384c3/project2.py#L65
 
 ### ----- STEP 1 : Extract Lane Color & Remove Backgrounds ----- ###
-def threshold(img):
+def threshold(img: cv2.typing.MatLike):
   # Convert BGR to HSV
   imgHsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
@@ -20,9 +20,10 @@ def threshold(img):
 
 
 ### ----- STEP 2 : Warping Lane Image ----- ###
-def warpImg(img, points, w, h, inverse=False):
+def warpImg(img: cv2.typing.MatLike, points: np.float32, w: int, h: int, inverse: bool=False):
   # Fix the four vertices of the area to be transformed
-  source = np.float32(points)
+  # source = np.float32(points)
+  source = points
   destination = np.float32([[0,0], [w,0], [0,h], [w,h]])
 
   # Get Warp Matrix
@@ -65,42 +66,39 @@ def drawPoints(img, points):
 
 
 ### ----- STEP 3 : Get Histogram ----- ###
-def getHistogram(img, minPer=0.5, display=False, region=1, direction='straight'):
+def getHistogram(img: cv2.typing.MatLike, minPer: np.float32=0.5, display: bool=False, region: np.uint8=1):
   # ROI(Region Of Interest) = bottom of image (1/region)
   roi = int(img.shape[0] - img.shape[0]//region)
   histValues = np.sum(img[roi::], axis=0)
-  #histValues = np.sum(img, axis=0) if region == 1 else np.sum(img[(img.shape[0])//region::], axis=0)
+  # histValues = np.sum(img, axis=0) if region == 1 else np.sum(img[(img.shape[0])//region::], axis=0)
 
-  # Use a histogram to calculate the shape of a road & basepoint(center of road)
-  # If direction is straight, (right/left) turn lane in crossroad should be ignored
-  if direction == 'straight':
-    minPer *= 1.5
-  minPer = 0.1 if minPer <= 0.1 else 0.9 if minPer >= 0.9 else minPer
-
+  # Use a histogram to calculate the shape of a road & basepoint(center of lane)
   maxValue = np.max(histValues)
   minValue = minPer * maxValue
   indexArray = np.where(histValues >= minValue)
-  basePoint = int(np.mean(indexArray))
+  basePoint = np.int32(np.mean(indexArray))
 
   # Visualization for debug
   if display:
-    imgHist = np.zeros((img.shape[0],img.shape[1],3), np.uint8)
+    imgHist = np.zeros((img.shape[0],img.shape[1],3), dtype=np.uint8)
     for x, intensity in enumerate(histValues):
       cv2.line(imgHist, (x,img.shape[0]), (x,img.shape[0]-intensity//255//region), (255,0,255), 1)
       cv2.circle(imgHist, (basePoint, img.shape[0]), 20, (0,255,255), cv2.FILLED)
     return basePoint, imgHist
-
+  
   return basePoint
 
 
 ### ----- STEP 4 : Smoothing Curve ----- ###
-def smoothingCurve(curveList, curveRaw, maxWindow = 5):
+def smoothingCurve(curveList: np.ndarray, curveRaw: np.int32, maxWindow: int=5):
   # Moving Average (default window size = 5)
-  curveList = np.append(curveList, curveRaw)
-  if np.size(curveList) > maxWindow:
-    np.delete(curveList, np.s_[0:np.size(curveList)-maxWindow]) # Pop old values
-
-  avg = int(np.mean(curveList)) # Average
+  curveList.append(curveRaw)
+  while len(curveList) > maxWindow:
+    curveList.pop(0) # Pop old values
+  
+  weight = np.flip(np.arange(maxWindow,dtype=int)) + 1
+  avg = np.int32(np.average(curveList,weights=weight)) # Weighted average
+  
   return avg
 
 
@@ -137,4 +135,5 @@ def stackImage(scale, imgArray):
     hor = np.stack(imgArray)
     ver = hor
 
+  #print(ver.shape)
   return ver
