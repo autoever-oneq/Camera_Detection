@@ -4,7 +4,10 @@ dsize = (640, 480)  # (Width, Height)
 
 class webcamModule:
   def __init__(self, size: tuple=dsize):
-    self.cap = cv2.VideoCapture(f'nvarguscamerasrc ! video/x-raw(memory:NVMM), width=3264, height=1848, format=(string)NV12, framerate=(fraction)28/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, width={size[0]}, height={size[1]}, format=(string)BGR ! appsink', cv2.CAP_GSTREAMER) # 외장카메라 ID index 값 필요
+    self.cap = cv2.VideoCapture(f'nvarguscamerasrc ! 
+                                video/x-raw(memory:NVMM), width=3264, height=1848, format=(string)NV12, framerate=(fraction)28/1 !
+                                nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert !
+                                video/x-raw, width={size[0]}, height={size[1]}, format=(string)BGR ! appsink', cv2.CAP_GSTREAMER)
     if not self.cap.isOpened():
       print("Cannot open video device")
       return

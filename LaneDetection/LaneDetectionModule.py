@@ -1,9 +1,8 @@
 import cv2
 import numpy as np
 import LaneUtils as utils
-
-# Global Variable (for static)
-# curveList = np.zeros(5, dtype=np.int32)  # Empty integer array
+# import cv2.typing
+# (parameter) img: cv2.typing.MatLike == np.typing.NDArray[np.uint8]
 
 # Get lane curve's trend
 class laneDetectionModule:
@@ -12,9 +11,6 @@ class laneDetectionModule:
 
 
   def getLaneCurve(self, img, curLane: np.uint8, targetLane: np.uint8, display: int=0):
-    imgCopy = img.copy()
-    imgResult = img.copy()
-
     ### STEP 1 : Find Lane & Binarization
     imgThres = utils.threshold(img)
 
@@ -28,7 +24,7 @@ class laneDetectionModule:
                     else [[wT*0.2,hT*0.5],[wT*0.6,hT*0.5],[wT*0.125,hT],[wT*0.625,hT]])
 
     imgWarp = utils.warpImg(imgThres, points, wT, hT)
-    imgWarpPoints = utils.drawPoints(imgCopy, points)
+    imgWarpPoints = utils.drawPoints(img.copy(), points)
 
     ### STEP 3 : Calculate Gradient of Lane(= Intensity of Curve)
     # Get histogram that accumulates pixel in a column
@@ -52,7 +48,7 @@ class laneDetectionModule:
       imgLaneColor = np.full_like(img, (0, 255, 0))
       imgLaneColor = cv2.bitwise_and(imgInvWarp, imgLaneColor)
       
-      imgResult = cv2.addWeighted(imgResult, 1, imgLaneColor, 1, 0)
+      imgResult = cv2.addWeighted(img, 1, imgLaneColor, 1, 0)
       midY = 450
 
       cv2.putText(imgResult, str(curve), (wT//2-80,85), cv2.FONT_HERSHEY_COMPLEX, 2, (255,255,0))
@@ -70,9 +66,9 @@ class laneDetectionModule:
         cv2.imshow('Result', imgResult)
 
     ### STEP 6 : Normalization & Thresholding
-    # Mapping [(-inf,-th],(-th,th),[th,inf)] -> [-1,0,1] & Avoid Twerking when curve near zero
-    #curveThres = 10
-    #curve = curve if np.abs(curve >= curveThres) else 0
+    # Mapping [curveMin,curveMax] -> [quantizedMin,quantizedMax] ([-250,250] => [-40,40])
+    Thres, curveThres = np.float32(250.), np.float32(40.)
+    curve = -curveThres if curve < -Thres else curveThres if curve > Thres else (curve * curveThres / Thres)
 
     return curve
 

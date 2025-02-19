@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-
-# https://github.com/murtazahassan/Learn-OpenCV-in-3-hours/blob/d4d6a14c7151aa4ebe23eb2a7cc8f94db05384c3/project2.py#L65
+# import cv2.typing
+# (parameter) img: cv2.typing.MatLike == np.typing.NDArray[np.uint8]
 
 ### ----- STEP 1 : Extract Lane Color & Remove Backgrounds ----- ###
 def threshold(img):
@@ -90,7 +90,7 @@ def getHistogram(img, minPer: np.float32=0.5, display: bool=False, region: np.ui
 
 
 ### ----- STEP 4 : Smoothing Curve ----- ###
-def smoothingCurve(curveList: np.ndarray, curveRaw: np.int32, maxWindow: int=5):
+def smoothingCurve(curveList: np.ndarray, curveRaw: np.float32, maxWindow: int=5):
   # Moving Average (default window size = 5)
   curveList.append(curveRaw)
   while len(curveList) > maxWindow:
