@@ -4,7 +4,7 @@ import numpy as np
 # https://github.com/murtazahassan/Learn-OpenCV-in-3-hours/blob/d4d6a14c7151aa4ebe23eb2a7cc8f94db05384c3/project2.py#L65
 
 ### ----- STEP 1 : Extract Lane Color & Remove Backgrounds ----- ###
-def threshold(img: cv2.typing.MatLike):
+def threshold(img):
   # Convert BGR to HSV
   imgHsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
@@ -20,7 +20,7 @@ def threshold(img: cv2.typing.MatLike):
 
 
 ### ----- STEP 2 : Warping Lane Image ----- ###
-def warpImg(img: cv2.typing.MatLike, points: np.float32, w: int, h: int, inverse: bool=False):
+def warpImg(img, points: np.float32, w: int, h: int, inverse: bool=False):
   # Fix the four vertices of the area to be transformed
   # source = np.float32(points)
   source = points
@@ -66,7 +66,7 @@ def drawPoints(img, points):
 
 
 ### ----- STEP 3 : Get Histogram ----- ###
-def getHistogram(img: cv2.typing.MatLike, minPer: np.float32=0.5, display: bool=False, region: np.uint8=1):
+def getHistogram(img, minPer: np.float32=0.5, display: bool=False, region: np.uint8=1):
   # ROI(Region Of Interest) = bottom of image (1/region)
   roi = int(img.shape[0] - img.shape[0]//region)
   histValues = np.sum(img[roi::], axis=0)
@@ -96,7 +96,7 @@ def smoothingCurve(curveList: np.ndarray, curveRaw: np.int32, maxWindow: int=5):
   while len(curveList) > maxWindow:
     curveList.pop(0) # Pop old values
   
-  weight = np.flip(np.arange(maxWindow,dtype=int)) + 1
+  weight = np.flip(np.arange(maxWindow,dtype=int), axis=0) + 1
   avg = np.int32(np.average(curveList,weights=weight)) # Weighted average
   
   return avg

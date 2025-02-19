@@ -11,7 +11,7 @@ class laneDetectionModule:
     self.curveList = [np.int32(0)] * 5
 
 
-  def getLaneCurve(self, img: cv2.typing.MatLike, curLane: np.uint8, targetLane: np.uint8, display: int=0):
+  def getLaneCurve(self, img, curLane: np.uint8, targetLane: np.uint8, display: int=0):
     imgCopy = img.copy()
     imgResult = img.copy()
 
