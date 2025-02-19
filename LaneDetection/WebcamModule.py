@@ -35,26 +35,25 @@ if __name__ == '__main__':
   webcam = webcamModule(size=(816,462))
   laneDetection = laneDetectionModule()
   fourcc = cv2.VideoWriter_fourcc(*'XVID')
-  #out = cv2.VideoWriter('output.avi', fourcc, 30.0, dsize)
+  #out = cv2.VideoWriter('output.avi', fourcc, 28.0, dsize)
 
   try:
-	  while webcam.cap.isOpened():
-	    success, img = webcam.captureImg(display=True)
-	    
-	    if not success:
-	      print("Video Capture Failed")
-	      break
+    while webcam.cap.isOpened():
+      success, img = webcam.captureImg(display=True)
 
-	    #out.write(img)
+      if not success:
+        print("Video Capture Failed")
+        break
 
-	    img = cv2.resize(img, dsize=dsize)
-	    curveVal = laneDetection.getLaneCurve(img, curLane=0, targetLane=0)
-	    print(curveVal)
-	    
-	    if cv2.waitKey(1) == ord('q'):
-	      break
-  
+      #out.write(img)
+
+      img = cv2.resize(img, dsize=dsize)
+      curveVal = laneDetection.getLaneCurve(img, curLane=0, targetLane=0)
+      print(curveVal)
+
+      if cv2.waitKey(1) == ord('q'):
+        break
 
   finally:
-  	cv2.destroyAllWindows()
-  	webcam.cap.release()
+    cv2.destroyAllWindows()
+    webcam.cap.release()
