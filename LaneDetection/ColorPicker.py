@@ -3,13 +3,13 @@ import numpy as np
 
 ### Debug Code For Lane Color Extraction
 ### Please change the name of the video
-videoName = 'camera9.mp4'
+videoName = 'output1.avi'
 cap = cv2.VideoCapture('video\\'+videoName)
 frameWidth = 480
 frameHeight = 240
 frameCounter = 0
 
-bar_init = [15, 179, 0, 90, 0, 110]
+bar_init = [50, 120, 0, 130, 25, 100]
 
 def empty(a):
   pass
