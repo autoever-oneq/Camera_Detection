@@ -24,7 +24,7 @@ class Engine:
 			print("None..")
 			exit()
 
-		self.inputs, self.outputs, self.allocations = self.allocate_buffers()
+		self.inputs, self.outputs, self.allocations, self.stream = self.allocate_buffers(self.engine)
 
 	# class HostDeviceMem:
 	# 	def __init__(self, host_mem, device_mem):
@@ -32,12 +32,11 @@ class Engine:
 	# 		self.device = device_mem
 
 	
-	def allocate_buffers(self):
+	def allocate_buffers(self, engine):
 		inputs, outputs, allocations = [], [], []
+		stream = cuda.Stream()
 
-		# print(f"self.engine.numbindings={self.engine.num_bindings}, num_layers={self.engine.num_layers}")
-
-		for i in range(self.engine.num_bindings):
+		for i in range(engine.num_bindings):
 			is_input = False
 			if self.engine.binding_is_input(i):
 				is_input = True
@@ -77,17 +76,18 @@ class Engine:
 				inputs.append(binding)
 			else:
 				outputs.append(binding)
-		return inputs, outputs, allocations
+		return inputs, outputs, allocations, stream
 
 	def infer(self, input_image):
 		# Transfer input data to device
 		image = input_image.transpose(0,3,1,2)	# (B,H,W,C) -> (B,C,H,W)
 		image = np.ascontiguousarray(image)
-		cuda.memcpy_htod(self.inputs[0]['allocation'], image)
-		self.context.execute_v2(self.allocations)
+		cuda.memcpy_htod_async(self.inputs[0]['allocation'], image, self.stream)
+		self.context.execute_async_v2(self.allocations, stream_handle=self.stream.handle)
 		for o in range(len(self.outputs)):
-			cuda.memcpy_dtoh(self.outputs[o]['host_allocation'], self.outputs[o]['allocation'])
+			cuda.memcpy_dtoh_async(self.outputs[o]['host_allocation'], self.outputs[o]['allocation'], self.stream)
 
+		self.stream.synchronize()
 		result = self.outputs[0]['host_allocation']
 		return result
 	
@@ -115,7 +115,7 @@ if __name__ == "__main__":
 	engine_path = "yolov8n.engine"
 	nn_engine = Engine(engine_path)
 
-	for imgName in os.listdir("./images")[:1]:
+	for imgName in os.listdir("./images")[:10]:
 		# Load image & normalize to 0~1
 		img = [cv2.imread(f'./images/{imgName}')]
 		input_image = np.array(img, dtype=np.float32)
