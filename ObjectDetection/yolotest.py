@@ -81,7 +81,7 @@ class Engine:
 
 	def infer(self, input_image):
 		# Transfer input data to device
-		image = input_image.transpose(0,3,1,2)
+		image = input_image.transpose(0,3,1,2)	# (B,H,W,C) -> (B,C,H,W)
 		image = np.ascontiguousarray(image)
 		cuda.memcpy_htod(self.inputs[0]['allocation'], image)
 		self.context.execute_v2(self.allocations)
@@ -91,26 +91,32 @@ class Engine:
 		result = self.outputs[0]['host_allocation']
 		return result
 	
-def extract_boxes_and_classes(output_tensor, conf_threshold=0.5):
-	# Extract the bounding box, objectness, and class probabilities
-	bbox = output_tensor[:4]  # [x_center, y_center, width, height]
-	class_probs = output_tensor[4:]  # Class probabilities
+	def extract_boxes_and_classes(self, output_tensor, conf_threshold=0.5):
+		# classes_id, boxes, scores = [], [], []
+		object_info = []
 
-	score = np.max(class_probs)
-	target = np.argmax(class_probs)
-	class_id = 0 if target < 8400 else 1
+		# Extract the bounding box, objectness, and class probabilities
+		bbox = output_tensor[:4]  # [x_center, y_center, width, height]
+		probs = output_tensor[4:]	# (0th class probs[], 1st class probs[], ...)
 
-	if score >= conf_threshold:
-		# (center_x, center_y, width, height)
-		box = bbox[:,target % 8400]
+		for cls, prob in enumerate(probs):
+			target_col = np.argmax(prob)	# Index of the most likely bbox of each car
 
-	return box, class_id, score
+			print(f"class {cls} conf : {prob[target_col]}")
+			if prob[target_col] >= conf_threshold:
+				box = bbox[:,target_col]
+				conf = prob[target_col]
+
+				object_info.append((cls, box, conf))
+
+		return object_info
 
 if __name__ == "__main__":
-	engine_path = "ob_detection.engine"
+	engine_path = "yolov8n.engine"
 	nn_engine = Engine(engine_path)
 
-	for imgName in os.listdir("./images")[:10]:
+	for imgName in os.listdir("./images")[:1]:
+		# Load image & normalize to 0~1
 		img = [cv2.imread(f'./images/{imgName}')]
 		input_image = np.array(img, dtype=np.float32)
 		input_image /= 255.0
@@ -123,5 +129,7 @@ if __name__ == "__main__":
 		print(f'image name : {imgName}')
 		print(f'infer_time : {infer_time:.5f} sec')
 
-		box, class_id, score = extract_boxes_and_classes(results[0])
-		print(f"Class ID: {class_id}, Confidence Score: {score:.2f}, Bounding Box: {box}")
+		object_info = nn_engine.extract_boxes_and_classes(results[0])
+
+		for info in object_info:
+			print(f"(Class ID, BBox, Confidence): {info}")
